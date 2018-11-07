@@ -27,7 +27,7 @@ $INSTALL_BASE = <<SCRIPT
 SCRIPT
 
 Vagrant.configure(2) do |config|
-  config.vm.box = "boxcutter/ubuntu1604"
+  config.vm.box = "bento/ubuntu-16.04"
 
   config.vm.provider "virtualbox" do |vb|
   #   # Display the VirtualBox GUI when booting the machine
