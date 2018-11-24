@@ -59,9 +59,11 @@ SimpleRouter::handlePacket(const Buffer& packet, const std::string& inIface)
 
   if (ether_type == ethertype_arp){
     std::cerr << "Type is ARP" << std::endl;
+    handleARP(packet, iface);
   }
   else if (ether_type == ethertype_ip){
     std::cerr << "Type is IPv4" << std::endl;
+    handleIP(packet, iface);
   }
   else {
     std::cerr << "Type is neither ARP nor IPv4. Ignore frame." << std::endl;
@@ -75,10 +77,23 @@ SimpleRouter::handlePacket(const Buffer& packet, const std::string& inIface)
     std::cerr << "Ethernet frames not destined to router." << std::endl;
     return;
   }
+}
 
+void SimpleRouter::handleARP(const Buffer& packet, const Interface* iface){
+  //get ARP header
+  arp_hdr* arp_header = (arp_hdr*)(packet.data() + sizeof(ethernet_hdr)); //pointer to beginning of ARP header
 
+  //check to see if ARP request or ARP reply
+  uint16_t arp_operation = ntohs(arp_header->arp_op);
 
+  //ARP request
+  if (arp_operation == arp_op_request){
 
+  }
+  //ARP reply
+  else if (arp_operation == arp_op_reply){
+    
+  }
 }
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
