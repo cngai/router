@@ -35,9 +35,49 @@ SimpleRouter::handlePacket(const Buffer& packet, const std::string& inIface)
     return;
   }
 
+  //debugging
+  print_hdrs(packet);
+
   std::cerr << getRoutingTable() << std::endl;
 
   // FILL THIS IN
+
+  // get ethernet header
+  ethernet_hdr header;
+  memcpy(&header, packet.data(), sizeof(ethernet_hdr)); //copy e-header from packet to header var
+
+  //get addresses
+  std::string packet_address = macToString(packet); //get MAC address of packet
+  std::string iface_address = macToString(iface->addr); //get address of interface
+
+  std::string broadcast_address_low = "ff:ff:ff:ff:ff:ff";  //broadcast address lowercase
+  std::string broadcast_address_up = "FF:FF:FF:FF:FF:FF";  //broadcast address uppercase
+
+  //REQ 1 - ignore Ethernet frames other than ARP and IPv4
+  uint16_t ether_type;
+  ether_type = ethertype((const uint8_t*)packet.data());  //get frame type;
+
+  if (ether_type == ethertype_arp){
+    std::cerr << "Type is ARP" << std::endl;
+  }
+  else if (ether_type == ethertype_ip){
+    std::cerr << "Type is IPv4" << std::endl;
+  }
+  else {
+    std::cerr << "Type is neither ARP nor IPv4. Ignore frame." << std::endl;
+    return;
+  }
+
+
+  //REQ 2 - ignore Ethernet frames not destined to router
+  //dest. HW address is neither corresponding MAC address of interface nor broadcast address
+  if ((packet_address != iface_address) && (packet_address != broadcast_address_low) && (packet_address != broadcast_address_up)){
+    std::cerr << "Ethernet frames not destined to router." << std::endl;
+    return;
+  }
+
+
+
 
 }
 //////////////////////////////////////////////////////////////////////////
