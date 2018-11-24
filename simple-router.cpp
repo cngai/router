@@ -88,11 +88,44 @@ void SimpleRouter::handleARP(const Buffer& packet, const Interface* iface){
 
   //ARP request
   if (arp_operation == arp_op_request){
+    //make sure ARP target address is same as interface address
+    if (arp_header->arp_tip != iface->ip){
+      std::cerr << "ARP IP address does not match interface IP address." << std::endl;
+      return; //drop packet
+    }
 
+    //create reply and send back
+    uint8_t buff_length = sizeof(ethernet_hdr) + sizeof(arp_hdr);
+    Buffer reply_buffer(buff_length);    //create buffer for ARP reply
+    uint8_t* arp_reply = (uint8_t *)reply_buffer.data();
+
+    //create reply ethernet header
+    ethernet_hdr* e_header_reply = (ethernet_hdr *)arp_reply;   //sets pointer to ethernet header of arp_reply
+    memcpy(e_header_reply->ether_shost, iface->addr.data(), ETHER_ADDR_LEN);  //copy interface address to source address
+    memcpy(e_header_reply->ether_dhost, &(arp_header->arp_sha), ETHER_ADDR_LEN);  //copy sender address to destination address
+    e_header_reply->ether_type = htons(ethertype_arp);  //set ethernet type as ARP
+
+    //create reply ARP header
+    arp_hdr* a_header_reply = (arp_hdr *)(arp_reply + sizeof(ethernet_hdr));  //sets pointer to arp header of arp_reply
+    a_header_reply->arp_hrd = htons(arp_hrd_ethernet);  //set format of hardware address
+    a_header_reply->arp_pro = htons(ethertype_ip);  //set protocol as IP
+    a_header_reply->arp_hln = ETHER_ADDR_LEN; //length of hardware address is 6 bytes
+    a_header_reply->arp_pln = 4;  //length of protocol address is 4 bytes
+    a_header_reply->arp_op = htons(arp_op_reply); //set ARP operation as reply
+    memcpy(a_header_reply->arp_sha, iface->addr.data(), ETHER_ADDR_LEN); //copy interface address as sender HW address
+    a_header_reply->arp_sip = iface->ip;  //set interface IP address as sender IP address
+    memcpy(a_header_reply->arp_tha, &(arp_header->arp_sha), ETHER_ADDR_LEN); //copy ARP request sender HW address as new target HW address
+    a_header_reply->arp_tip = arp_header->arp_sip;   //set ARP request sender IP address as new target IP address
+
+    //debugging
+    print_hdrs(reply_buffer);
+
+    //send ARP reply back
+    sendPacket(reply_buffer, iface->name);
   }
   //ARP reply
   else if (arp_operation == arp_op_reply){
-    
+
   }
 }
 //////////////////////////////////////////////////////////////////////////
