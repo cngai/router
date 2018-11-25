@@ -125,7 +125,40 @@ void SimpleRouter::handleARP(const Buffer& packet, const Interface* iface){
   }
   //ARP reply
   else if (arp_operation == arp_op_reply){
+    //record IP-MAC mapping information in ARP cache
+    uint32_t sip = arp_header->arp_sip;   //source IP address of ARP reply
+    Buffer mac(ETHER_ADDR_LEN);
+    memcpy(mac.data(), arp_header->arp_sha, ETHER_ADDR_LEN);  //copy source HW address of ARP reply to 'mac' buffer
 
+    //* 1) Looks up this IP in the request queue. If it is found, returns a pointer
+    //*    to the ArpRequest with this IP. Otherwise, returns nullptr.
+    //* 2) Inserts this IP to MAC mapping in the cache, and marks it valid.
+    std::shared_ptr<ArpRequest> arp_req = m_arp.insertArpEntry(mac, sip);
+
+    // Check if IP is in request queue
+    // Given address from ARP, can send pending packets arp request
+    // Iterate through packets, based on loop in arp-cache.cpp
+    if (arp_req != nullptr) {
+      //iterate through list of pending packets in queue
+      for (std::list<PendingPacket>::const_iterator pp_iterator = arp_req->packets.begin(); pp_iterator != arp_req->packets.end(); ++pp_iterator) {
+        const uint8_t* arp_buff = pp_iterator->packet.data(); //holds Ethernet frame of pending packet
+        ethernet_hdr* e_header = (ethernet_hdr *)arp_buff;  //points to ethernet header of frame
+        memcpy(e_header->ether_shost, iface->addr.data(), ETHER_ADDR_LEN); //copy interface address as source address
+        memcpy(e_header->ether_dhost, arp_header->arp_sha, ETHER_ADDR_LEN); //copy ARP reply's source HW address as new dest address
+
+        //send out all corresponding enqueued packets for the ARP entry
+        sendPacket(pp_iterator->packet, pp_iterator->iface);
+      }
+      
+      //Frees all memory associated with this arp request entry. If this arp request
+      //entry is on the arp request queue, it is removed from the queue.
+      m_arp.removeRequest(arp_req);
+    }
+
+  }
+  else{
+    std::cerr << "ARP operation is neither a request nor a reply." << std::endl;
+    return; //drop packet
   }
 }
 //////////////////////////////////////////////////////////////////////////
