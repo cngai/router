@@ -79,6 +79,7 @@ SimpleRouter::handlePacket(const Buffer& packet, const std::string& inIface)
   }
 }
 
+//helper function to handle ARP requests/replies
 void SimpleRouter::handleARP(const Buffer& packet, const Interface* iface){
   //get ARP header
   arp_hdr* arp_header = (arp_hdr*)(packet.data() + sizeof(ethernet_hdr)); //pointer to beginning of ARP header
@@ -149,7 +150,7 @@ void SimpleRouter::handleARP(const Buffer& packet, const Interface* iface){
         //send out all corresponding enqueued packets for the ARP entry
         sendPacket(pp_iterator->packet, pp_iterator->iface);
       }
-      
+
       //Frees all memory associated with this arp request entry. If this arp request
       //entry is on the arp request queue, it is removed from the queue.
       m_arp.removeRequest(arp_req);
@@ -160,6 +161,39 @@ void SimpleRouter::handleARP(const Buffer& packet, const Interface* iface){
     std::cerr << "ARP operation is neither a request nor a reply." << std::endl;
     return; //drop packet
   }
+}
+
+//helper function to handle IP packets
+void SimpleRouter::handleIP(const Buffer& packet, const Interface* iface){
+  //get IP packet
+  Buffer ip_packet(packet);
+
+  //get IP header
+  ip_hdr* ip_header = (ip_hdr*)(ip_packet.data() + sizeof(ethernet_hdr)); //pointer to beginning of IP header
+
+  //verify checksum
+  uint16_t cs = ip_header->ip_sum;    //get IP packet checksum
+  ip_header->ipsum = 0;
+  uint16_t expected_cs = cksum(ip_header, sizeof(ip_hdr));  //expected checksum
+
+  if (cs != expected_cs){
+    std::cerr << "Checksum does not match expected checksum" << std::endl;
+    return; //drop packet
+  }
+
+  //verify min length of IP packet
+  if (packet.size() < (sizeof(ethernet_hdr) + sizeof(ip_hdr)){
+    std::cerr << "IP packet size smaller than size of ethernet + IP headers" << std::endl;
+    return; //drop packet
+  }
+
+  if (ip_header->ip_len < sizeof(ip_hdr))){
+    std::cerr << "Length of IP packet smaller than IP header" << std::endl;
+    return; //drop packet
+  }
+  
+
+
 }
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
