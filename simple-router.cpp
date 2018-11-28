@@ -70,7 +70,6 @@ SimpleRouter::handlePacket(const Buffer& packet, const std::string& inIface)
     return;
   }
 
-
   //REQ 2 - ignore Ethernet frames not destined to router
   //dest. HW address is neither corresponding MAC address of interface nor broadcast address
   if ((packet_address != iface_address) && (packet_address != broadcast_address_low) && (packet_address != broadcast_address_up)){

@@ -25,15 +25,48 @@
 
 namespace simple_router {
 
+//helper function to sort routing table entries by mask length
+
+bool sortMaskLengths(RoutingTableEntry& rte1, RoutingTableEntry& rte2){
+  if (rte1.mask > rte2.mask){
+    return true;
+  }
+  else{
+    return false;
+  }
+}
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 // IMPLEMENT THIS METHOD
 RoutingTableEntry
 RoutingTable::lookup(uint32_t ip) const
 {
-
   // FILL THIS IN
+  //longest-prefix matching algorithm
+  //find entry in table which has longest prefix matching with incoming packet's destination IP
+  //forward packet to corresponding next hop
 
+  //sort through routing table entries and sort by mask length
+  std::list<RoutingTableEntry> routing_table(m_entries);  //create routing table entry
+  routing_table.sort(sortMaskLengths);
+
+  //iterate through routing table
+  for (std::list<RoutingTableEntry>::const_iterator rte_iterator = routing_table.begin(); rte_iterator != routing_table.end(); ++rte_iterator){
+    uint32_t rte_dest = rte_iterator->dest;
+    uint32_t rte_mask = rte_iterator->mask;
+    uint32_t rte_masked_dest = rte_dest & rte_mask;   //mask destination
+    uint32_t rte_masked_ip = ip & rte_mask;   //mask IP address
+
+    //check if masked dest equals masked IP
+    //entries are sorted by longest mask so first match should be longest matched prefix
+    if (rte_masked_dest == rte_masked_ip){
+      RoutingTableEntry rte = *(rte_iterator);  //dereference routing table entry
+      return rte;
+    }
+  }
+
+  //routing table entry not found
   throw std::runtime_error("Routing entry not found");
 }
 //////////////////////////////////////////////////////////////////////////
