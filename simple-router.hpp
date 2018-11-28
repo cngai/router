@@ -113,6 +113,10 @@ private:
 
   friend class Router;
   pox::PacketInjectorPrx m_pox;
+
+  //helper functions
+  void handleARP(const Buffer& packet, const Interface* iface);
+  void handleIP(const Buffer& packet, const Interface* iface);
 };
 
 inline const RoutingTable&

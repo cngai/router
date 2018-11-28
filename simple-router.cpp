@@ -173,7 +173,7 @@ void SimpleRouter::handleIP(const Buffer& packet, const Interface* iface){
 
   //verify checksum
   uint16_t cs = ip_header->ip_sum;    //get IP packet checksum
-  ip_header->ipsum = 0;
+  ip_header->ip_sum = 0;
   uint16_t expected_cs = cksum(ip_header, sizeof(ip_hdr));  //expected checksum
 
   if (cs != expected_cs){
@@ -182,12 +182,12 @@ void SimpleRouter::handleIP(const Buffer& packet, const Interface* iface){
   }
 
   //verify min length of IP packet
-  if (packet.size() < (sizeof(ethernet_hdr) + sizeof(ip_hdr)){
+  if (packet.size() < (sizeof(ethernet_hdr) + sizeof(ip_hdr))){
     std::cerr << "Invalid packet: IP packet size smaller than size of ethernet + IP headers" << std::endl;
     return; //drop packet
   }
 
-  if (ip_header->ip_len < sizeof(ip_hdr))){
+  if (ip_header->ip_len < sizeof(ip_hdr)){
     std::cerr << "Invalid packet: length of IP packet smaller than IP header" << std::endl;
     return; //drop packet
   }
@@ -197,7 +197,7 @@ void SimpleRouter::handleIP(const Buffer& packet, const Interface* iface){
   for (std::set<Interface>::const_iterator if_iterator = m_ifaces.begin(); if_iterator != m_ifaces.end(); ++if_iterator) {
     //datagram destined to router
     if (ip_header->ip_dst == if_iterator->ip) {
-      std::cerr << "Datagram destined to router. Dropping packet." << std:endl;
+      std::cerr << "Datagram destined to router. Dropping packet." << std::endl;
       return; //drop packet
     }
   }
@@ -270,14 +270,6 @@ void SimpleRouter::handleIP(const Buffer& packet, const Interface* iface){
 
     //send ARP request back
     sendPacket(request_buffer, ip_if->name);
-
-    /************************************************************/
-    memcpy(request_a_hdr->arp_sha, ip_iface->addr.data(), ETHER_ADDR_LEN);
-    request_a_hdr->arp_sip = ip_iface->ip;
-    memcpy(request_a_hdr->arp_tha, BroadcastEtherAddr, ETHER_ADDR_LEN);
-    request_a_hdr->arp_tip = ip_header->ip_dst;
-
-    sendPacket(packetBuffer, ip_iface->name);
   }
 }
 
