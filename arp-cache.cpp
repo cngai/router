@@ -30,7 +30,24 @@ namespace simple_router {
 void
 ArpCache::periodicCheckArpRequestsAndCacheEntries()
 {
+  /**
+   * IMPLEMENT THIS METHOD
+   *
+   * This method gets called every second. For each request sent out,
+   * you should keep checking whether to resend a request or remove it.
+   *
+   * Your implementation should follow the following logic
+   *
+   *     for each request in queued requests:
+   *         handleRequest(request)
+   *
+   *     for each cache entry in entries:
+   *         if not entry->isValid
+   *             record entry for removal
+   *     remove all entries marked for removal
+   */
 
+  
 }
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
