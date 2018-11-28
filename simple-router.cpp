@@ -235,11 +235,52 @@ void SimpleRouter::handleIP(const Buffer& packet, const Interface* iface){
     ip_eth_header->ether_type = htons(ethertype_ip);  //set type to IP packet
 
     //forward packet to next hop
-    sendPacket(ip_packet, ip_iface->name);
+    sendPacket(ip_packet, ip_if->name);
   }
   //if entry not found in Arp cache, router should queue received packet and send ARP request to discover IP->MAC mapping
-  
+  else {
+    //queue received packet
+    std::shared_ptr<ArpRequest> ar = m_arp.queueRequest(ip_header->ip_dst, ip_packet, ip_if->name);
+
+    //send ARP request
+    uint8_t buff_length = sizeof(ethernet_hdr) + sizeof(arp_hdr);
+    Buffer request_buffer(buff_length);    //create buffer for ARP reply
+    uint8_t* arp_req = (uint8_t *)request_buffer.data();
+
+    //create request ethernet header
+    ethernet_hdr* e_header_req = (ethernet_hdr *)arp_req;   //sets pointer to ethernet header of arp_req
+    memcpy(e_header_req->ether_shost, ip_if->addr.data(), ETHER_ADDR_LEN);  //copy IP interface address to source address
+    memcpy(e_header_req->ether_dhost, BroadcastEtherAddr, ETHER_ADDR_LEN);  //copy Broadcast address to destination address
+    e_header_req->ether_type = htons(ethertype_arp);  //set ethernet type as ARP
+
+    //create request ARP header
+    arp_hdr* a_header_req = (arp_hdr*)(arp_req + sizeof(ethernet_hdr));  //sets point to arp header of arp_req
+    a_header_req->arp_hrd = htons(arp_hrd_ethernet);  //set format of hardware address
+    a_header_req->arp_pro = htons(ethertype_ip);  //set protocol as IP
+    a_header_req->arp_hln = ETHER_ADDR_LEN; //length of hardware address is 6 bytes
+    a_header_req->arp_pln = 4;  //length of protocol address is 4 bytes
+    a_header_req->arp_op = htons(arp_op_request); //set ARP operation as request
+    memcpy(a_header_req->arp_sha, ip_if->addr.data(), ETHER_ADDR_LEN); //copy IP interface address as sender HW address
+    a_header_req->arp_sip = ip_if->ip;  //set IP interface address as sender IP address
+    memcpy(a_header_req->arp_tha, BroadcastEtherAddr, ETHER_ADDR_LEN); //copy Broadcast address as new target HW address
+    a_header_req->arp_tip = ip_header->ip_dst;   //set IP packet destination address as new target IP address
+
+    //debugging
+    print_hdrs(request_buffer);
+
+    //send ARP request back
+    sendPacket(request_buffer, ip_if->name);
+
+    /************************************************************/
+    memcpy(request_a_hdr->arp_sha, ip_iface->addr.data(), ETHER_ADDR_LEN);
+    request_a_hdr->arp_sip = ip_iface->ip;
+    memcpy(request_a_hdr->arp_tha, BroadcastEtherAddr, ETHER_ADDR_LEN);
+    request_a_hdr->arp_tip = ip_header->ip_dst;
+
+    sendPacket(packetBuffer, ip_iface->name);
+  }
 }
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
