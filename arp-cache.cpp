@@ -57,7 +57,7 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
     if ((*queue_iterator)->nTimesSent >= MAX_SENT_TIME){
       //iterate through list of pending packets for specific arp request
       for (std::list<PendingPacket>::const_iterator pp_iterator = (*queue_iterator)->packets.begin(); pp_iterator != (*queue_iterator)->packets.end(); ++pp_iterator) {
-        ethernet_hdr* pp_e_header = (ethernet_hdr*)(pp_iterator->packet.data()); //set pointer to beginning of packet
+        // ethernet_hdr* pp_e_header = (ethernet_hdr*)(pp_iterator->packet.data()); //set pointer to beginning of packet
         // uint8_t host_unreachable = 1;  //not sure what this is for
         // const Interface * out_iface = m_router.findIfaceByName(pp_iterator->iface);
         // const Interface * in_iface = m_router.findIfaceByMac(Buffer(pp_e_header->ether_dhost, pp_e_header->ether_dhost + ETHER_ADDR_LEN));
@@ -73,7 +73,7 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
 
       //create request ethernet header
       ethernet_hdr* e_header_req = (ethernet_hdr *)arp_req;   //sets pointer to ethernet header of arp_req
-      const Interface* iface = findIfaceByName((*queue_iterator)->packets.front().iface); //iface name of first packet in queue
+      const Interface* iface = m_router.findIfaceByName((*queue_iterator)->packets.front().iface); //iface name of first packet in queue
       memcpy(e_header_req->ether_shost, iface->addr.data(), ETHER_ADDR_LEN);  //copy interface address to source address
       memcpy(e_header_req->ether_dhost, BroadcastEtherAddr, ETHER_ADDR_LEN);  //copy Broadcast address to destination address
       e_header_req->ether_type = htons(ethertype_arp);  //set ethernet type as ARP
@@ -88,7 +88,7 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
       memcpy(a_header_req->arp_sha, iface->addr.data(), ETHER_ADDR_LEN); //copy IP interface address as sender HW address
       a_header_req->arp_sip = iface->ip;  //set IP interface address as sender IP address
       memcpy(a_header_req->arp_tha, BroadcastEtherAddr, ETHER_ADDR_LEN); //copy Broadcast address as new target HW address
-      a_header_req->arp_tip = (*queue_iterator)->ip_dst;   //set IP packet destination address as new target IP address
+      a_header_req->arp_tip = (*queue_iterator)->ip;   //set IP packet destination address as new target IP address
 
       //debugging
       print_hdrs(request_buffer);
@@ -98,7 +98,7 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
 
       //update information
       (*queue_iterator)->timeSent = now;
-      (*queue_iterator)->nTimesSent = nTimesSent + 1;
+      (*queue_iterator)->nTimesSent = (*queue_iterator)->nTimesSent + 1;
 
       //move on to next pending request
       ++queue_iterator;
