@@ -47,7 +47,23 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
    *     remove all entries marked for removal
    */
 
-  
+  //now variable represents current time
+  auto now = steady_clock::now();
+
+  //iterate through queued requests
+  for (std::list<std::shared_ptr<ArpRequest>>::iterator queue_iterator = m_arpRequests.begin(); queue_iterator != m_arpRequests.end(); ++queue_iterator){
+    //if tried to send arp request 5 or more times, stop re-transmitting, remove pending request,
+    //and any packets that are queued for transmission that are associated with the request
+    if ((*queue_iterator)->nTimesSent >= MAX_SENT_TIME){
+      //iterate through list of pending packets for specific arp request
+      for (std::list<PendingPacket>::const_iterator pp_iterator = (*queue_iterator)->packets.begin(); pp_iterator != (*queue_iterator)->packets.end(); ++pp_iterator) {
+        ethernet_hdr* pp_e_header = (ethernet_hdr*)(pp_iterator->packet.data()); //set pointer to beginning of packet
+        // uint8_t host_unreachable = 1;  //not sure what this is for
+        const Interface* 
+      } 
+    }
+  }
+
 }
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
