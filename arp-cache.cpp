@@ -51,7 +51,7 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
   auto now = steady_clock::now();
 
   //iterate through queued requests
-  for (std::list<std::shared_ptr<ArpRequest>>::iterator queue_iterator = m_arpRequests.begin(); queue_iterator != m_arpRequests.end(); ++queue_iterator){
+  for (std::list<std::shared_ptr<ArpRequest>>::iterator queue_iterator = m_arpRequests.begin(); queue_iterator != m_arpRequests.end(); ){
     //if tried to send arp request 5 or more times, stop re-transmitting, remove pending request,
     //and any packets that are queued for transmission that are associated with the request
     if ((*queue_iterator)->nTimesSent >= MAX_SENT_TIME){
@@ -59,8 +59,49 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
       for (std::list<PendingPacket>::const_iterator pp_iterator = (*queue_iterator)->packets.begin(); pp_iterator != (*queue_iterator)->packets.end(); ++pp_iterator) {
         ethernet_hdr* pp_e_header = (ethernet_hdr*)(pp_iterator->packet.data()); //set pointer to beginning of packet
         // uint8_t host_unreachable = 1;  //not sure what this is for
-        const Interface* 
+        // const Interface * out_iface = m_router.findIfaceByName(pp_iterator->iface);
+        // const Interface * in_iface = m_router.findIfaceByMac(Buffer(pp_e_header->ether_dhost, pp_e_header->ether_dhost + ETHER_ADDR_LEN));
       } 
+      queue_iterator = m_arpRequests.erase(queue_iterator); //remove pending request
+    }
+    //send ARP request until ARP reply comes back
+    else{
+      //send ARP request
+      uint8_t buff_length = sizeof(ethernet_hdr) + sizeof(arp_hdr);
+      Buffer request_buffer(buff_length);    //create buffer for ARP reply
+      uint8_t* arp_req = (uint8_t *)request_buffer.data();
+
+      //create request ethernet header
+      ethernet_hdr* e_header_req = (ethernet_hdr *)arp_req;   //sets pointer to ethernet header of arp_req
+      const Interface* iface = findIfaceByName((*queue_iterator)->packets.front().iface); //iface name of first packet in queue
+      memcpy(e_header_req->ether_shost, iface->addr.data(), ETHER_ADDR_LEN);  //copy interface address to source address
+      memcpy(e_header_req->ether_dhost, BroadcastEtherAddr, ETHER_ADDR_LEN);  //copy Broadcast address to destination address
+      e_header_req->ether_type = htons(ethertype_arp);  //set ethernet type as ARP
+
+      //create request ARP header
+      arp_hdr* a_header_req = (arp_hdr*)(arp_req + sizeof(ethernet_hdr));  //sets point to arp header of arp_req
+      a_header_req->arp_hrd = htons(arp_hrd_ethernet);  //set format of hardware address
+      a_header_req->arp_pro = htons(ethertype_ip);  //set protocol as IP
+      a_header_req->arp_hln = ETHER_ADDR_LEN; //length of hardware address is 6 bytes
+      a_header_req->arp_pln = 4;  //length of protocol address is 4 bytes
+      a_header_req->arp_op = htons(arp_op_request); //set ARP operation as request
+      memcpy(a_header_req->arp_sha, iface->addr.data(), ETHER_ADDR_LEN); //copy IP interface address as sender HW address
+      a_header_req->arp_sip = iface->ip;  //set IP interface address as sender IP address
+      memcpy(a_header_req->arp_tha, BroadcastEtherAddr, ETHER_ADDR_LEN); //copy Broadcast address as new target HW address
+      a_header_req->arp_tip = (*queue_iterator)->ip_dst;   //set IP packet destination address as new target IP address
+
+      //debugging
+      print_hdrs(request_buffer);
+
+      //send ARP request back
+      m_router.sendPacket(request_buffer, (*queue_iterator)->packets.front().iface);
+
+      //update information
+      (*queue_iterator)->timeSent = now;
+      (*queue_iterator)->nTimesSent = nTimesSent + 1;
+
+      //move on to next pending request
+      ++queue_iterator
     }
   }
 
