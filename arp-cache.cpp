@@ -101,10 +101,21 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
       (*queue_iterator)->nTimesSent = nTimesSent + 1;
 
       //move on to next pending request
-      ++queue_iterator
+      ++queue_iterator;
     }
   }
 
+  //iterate through arp entries 
+  for (std::list<std::shared_ptr<ArpEntry>>::iterator ae_iterator = m_cacheEntries.begin(); ae_iterator != m_cacheEntries.end();){
+    //if arp entry is not valid, erase it form the cache
+    if (!(*ae_iterator)->isValid) {
+      ae_iterator = m_cacheEntries.erase(ae_iterator);
+    }
+    //otherwise, continue
+    else{
+      ++ae_iterator;
+    }
+  }
 }
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
