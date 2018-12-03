@@ -36,9 +36,10 @@ SimpleRouter::handlePacket(const Buffer& packet, const std::string& inIface)
   }
 
   //debugging
+  std::cerr << "Before processing packet" << std::endl;
   print_hdrs(packet);
 
-  std::cerr << getRoutingTable() << std::endl;
+  //std::cerr << getRoutingTable() << std::endl;
 
   // FILL THIS IN
 
@@ -88,6 +89,8 @@ void SimpleRouter::handleARP(const Buffer& packet, const Interface* iface){
 
   //ARP request
   if (arp_operation == arp_op_request){
+    std::cerr << "ARP REQUEST" << std::endl;
+
     //make sure ARP target address is same as interface address
     if (arp_header->arp_tip != iface->ip){
       std::cerr << "ARP IP address does not match interface IP address." << std::endl;
@@ -118,6 +121,7 @@ void SimpleRouter::handleARP(const Buffer& packet, const Interface* iface){
     a_header_reply->arp_tip = arp_header->arp_sip;   //set ARP request sender IP address as new target IP address
 
     //debugging
+    std::cerr << "After ARP response created" << std::endl;
     print_hdrs(reply_buffer);
 
     //send ARP reply back
@@ -125,6 +129,8 @@ void SimpleRouter::handleARP(const Buffer& packet, const Interface* iface){
   }
   //ARP reply
   else if (arp_operation == arp_op_reply){
+    std::cerr << "ARP RESPONSE" << std::endl;
+
     //record IP-MAC mapping information in ARP cache
     uint32_t sip = arp_header->arp_sip;   //source IP address of ARP reply
     Buffer mac(ETHER_ADDR_LEN);
@@ -145,6 +151,9 @@ void SimpleRouter::handleARP(const Buffer& packet, const Interface* iface){
         ethernet_hdr* e_header = (ethernet_hdr *)arp_buff;  //points to ethernet header of frame
         memcpy(e_header->ether_shost, iface->addr.data(), ETHER_ADDR_LEN); //copy interface address as source address
         memcpy(e_header->ether_dhost, arp_header->arp_sha, ETHER_ADDR_LEN); //copy ARP reply's source HW address as new dest address
+
+        std::cerr << "SENDING PENDING PACKET" << std::endl;
+        print_hdrs(pp_iterator->packet);
 
         //send out all corresponding enqueued packets for the ARP entry
         sendPacket(pp_iterator->packet, pp_iterator->iface);
@@ -223,7 +232,7 @@ void SimpleRouter::handleIP(const Buffer& packet, const Interface* iface){
   const Interface* ip_if = findIfaceByName(rte.ifName);
 
   //check if an IP->MAC mapping is in the cache
-  std::shared_ptr<ArpEntry> ae = m_arp.lookup(ip_header->ip_dst);
+  std::shared_ptr<ArpEntry> ae = m_arp.lookup(rte.gw); //change to rte.gw  ip_header->ip_dst
 
   //if entry found in Arp cache, forward packet to next hop
   if (ae != nullptr) {
@@ -264,7 +273,8 @@ void SimpleRouter::handleIP(const Buffer& packet, const Interface* iface){
     memcpy(a_header_req->arp_tha, BroadcastEtherAddr, ETHER_ADDR_LEN); //copy Broadcast address as new target HW address
     a_header_req->arp_tip = ip_header->ip_dst;   //set IP packet destination address as new target IP address
 
-    //debugging
+    //debugging for FORWARDING TEST
+    std::cerr << "FORWARDING: creating ARP request" << std::endl;
     print_hdrs(request_buffer);
 
     //send ARP request back
