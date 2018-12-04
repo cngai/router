@@ -62,6 +62,9 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
         // const Interface * out_iface = m_router.findIfaceByName(pp_iterator->iface);
         // const Interface * in_iface = m_router.findIfaceByMac(Buffer(pp_e_header->ether_dhost, pp_e_header->ether_dhost + ETHER_ADDR_LEN));
       } 
+
+      //debugging
+      std::cerr << "ARP REQUEST SENT 5 TIMES. DELETE BOI" << std::endl;
       queue_iterator = m_arpRequests.erase(queue_iterator); //remove pending request
     }
     //send ARP request until ARP reply comes back
@@ -105,7 +108,10 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
     }
   }
 
-  //iterate through arp entries 
+  //for debugging purposes
+  //std::cerr << m_cacheEntries.size() << std::endl;
+
+  //iterate through arp entries, delete entries after 30 seconds
   for (std::list<std::shared_ptr<ArpEntry>>::iterator ae_iterator = m_cacheEntries.begin(); ae_iterator != m_cacheEntries.end();){
     //if arp entry is not valid, erase it form the cache
     if (!(*ae_iterator)->isValid) {
