@@ -48,7 +48,7 @@ RoutingTable::lookup(uint32_t ip) const
   //forward packet to corresponding next hop
 
   //sort through routing table entries and sort by mask length
-  std::list<RoutingTableEntry> routing_table(m_entries);  //create routing table entry
+  std::list<RoutingTableEntry> routing_table(m_entries);  //create routing table
   routing_table.sort(sortMaskLengths);
 
   //iterate through routing table
