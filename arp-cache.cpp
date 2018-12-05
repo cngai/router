@@ -35,33 +35,8 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
 
   //iterate through queued requests
   for (std::list<std::shared_ptr<ArpRequest>>::iterator queue_iterator = m_arpRequests.begin(); queue_iterator != m_arpRequests.end(); ){
-    //if tried to send arp request 5 or more times, stop re-transmitting, remove pending request,
-    //and any packets that are queued for transmission that are associated with the request
-    if ((*queue_iterator)->nTimesSent >= MAX_SENT_TIME){
-      //iterate through list of pending packets for specific arp request and delete pending packets
-
-      //debugging
-      std::cerr << "DELETING PENDING PACKET LIST OF SIZE: " << (*queue_iterator)->packets.size() << std::endl;
-
-      for (std::list<PendingPacket>::const_iterator pp_iterator = (*queue_iterator)->packets.begin(); pp_iterator != (*queue_iterator)->packets.end();) {
-        // ethernet_hdr* pp_e_header = (ethernet_hdr*)(pp_iterator->packet.data()); //set pointer to beginning of packet
-        // uint8_t host_unreachable = 1;  //not sure what this is for
-        // const Interface * out_iface = m_router.findIfaceByName(pp_iterator->iface);
-        // const Interface * in_iface = m_router.findIfaceByMac(Buffer(pp_e_header->ether_dhost, pp_e_header->ether_dhost + ETHER_ADDR_LEN));
-        pp_iterator = (*queue_iterator)->packets.erase(pp_iterator);
-      } 
-
-      std::cerr << "AFTER PENDING PACKET LIST OF SIZE: " << (*queue_iterator)->packets.size() << std::endl;
-
-      //debugging
-      std::cerr << "ARP REQUEST SENT 5 TIMES. DELETING REQUEST" << std::endl;
-      std::cerr << "BEFORE LENGTH OF ARP REQUEST LIST: " << m_arpRequests.size() << std::endl;
-      queue_iterator = m_arpRequests.erase(queue_iterator); //remove pending request
-      // removeRequest(*queue_iterator);
-      std::cerr << "AFTER LENGTH OF ARP REQUEST LIST: " << m_arpRequests.size() << std::endl;
-    }
     //send ARP request until ARP reply comes back
-    else{
+    if ((*queue_iterator)->nTimesSent < MAX_SENT_TIME){
       //debugging
       std::cerr << "SENDING ARP REQUEST #" << (*queue_iterator)->nTimesSent << std::endl;
 
@@ -101,6 +76,26 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
 
       //move on to next pending request
       queue_iterator++;
+    }
+    //if tried to send arp request 5 or more times, stop re-transmitting, remove pending request,
+    //and any packets that are queued for transmission that are associated with the request
+    else{
+      //debugging
+      std::cerr << "DELETING PENDING PACKET LIST OF SIZE: " << (*queue_iterator)->packets.size() << std::endl;
+
+      //iterate through pending packets and remove packets
+      for (std::list<PendingPacket>::const_iterator pp_iterator = (*queue_iterator)->packets.begin(); pp_iterator != (*queue_iterator)->packets.end();) {
+        pp_iterator = (*queue_iterator)->packets.erase(pp_iterator);
+      } 
+
+      std::cerr << "AFTER PENDING PACKET LIST OF SIZE: " << (*queue_iterator)->packets.size() << std::endl;
+
+      //debugging
+      std::cerr << "ARP REQUEST SENT 5 TIMES. DELETING REQUEST" << std::endl;
+      std::cerr << "BEFORE LENGTH OF ARP REQUEST LIST: " << m_arpRequests.size() << std::endl;
+      queue_iterator = m_arpRequests.erase(queue_iterator); //remove pending request
+      // removeRequest(*queue_iterator);
+      std::cerr << "AFTER LENGTH OF ARP REQUEST LIST: " << m_arpRequests.size() << std::endl;
     }
   }
 
