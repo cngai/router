@@ -56,19 +56,25 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
     //and any packets that are queued for transmission that are associated with the request
     if ((*queue_iterator)->nTimesSent >= MAX_SENT_TIME){
       //iterate through list of pending packets for specific arp request
-      for (std::list<PendingPacket>::const_iterator pp_iterator = (*queue_iterator)->packets.begin(); pp_iterator != (*queue_iterator)->packets.end(); ++pp_iterator) {
-        // ethernet_hdr* pp_e_header = (ethernet_hdr*)(pp_iterator->packet.data()); //set pointer to beginning of packet
-        // uint8_t host_unreachable = 1;  //not sure what this is for
-        // const Interface * out_iface = m_router.findIfaceByName(pp_iterator->iface);
-        // const Interface * in_iface = m_router.findIfaceByMac(Buffer(pp_e_header->ether_dhost, pp_e_header->ether_dhost + ETHER_ADDR_LEN));
-      } 
+      // for (std::list<PendingPacket>::const_iterator pp_iterator = (*queue_iterator)->packets.begin(); pp_iterator != (*queue_iterator)->packets.end(); ++pp_iterator) {
+      //   ethernet_hdr* pp_e_header = (ethernet_hdr*)(pp_iterator->packet.data()); //set pointer to beginning of packet
+      //   uint8_t host_unreachable = 1;  //not sure what this is for
+      //   const Interface * out_iface = m_router.findIfaceByName(pp_iterator->iface);
+      //   const Interface * in_iface = m_router.findIfaceByMac(Buffer(pp_e_header->ether_dhost, pp_e_header->ether_dhost + ETHER_ADDR_LEN));
+      // } 
 
       //debugging
-      std::cerr << "ARP REQUEST SENT 5 TIMES. DELETE BOI" << std::endl;
+      std::cerr << "ARP REQUEST SENT 5 TIMES. DELETING REQUEST" << std::endl;
+      std::cerr << "BEFORE LENGTH OF ARP REQUEST LIST: " << m_arpRequests.size() << std::endl;
       queue_iterator = m_arpRequests.erase(queue_iterator); //remove pending request
+      // removeRequest(*queue_iterator);
+      std::cerr << "AFTER LENGTH OF ARP REQUEST LIST: " << m_arpRequests.size() << std::endl;
     }
     //send ARP request until ARP reply comes back
     else{
+      //debugging
+      std::cerr << "SENDING ARP REQUEST #" << (*queue_iterator)->nTimesSent << std::endl;
+
       //send ARP request
       uint8_t buff_length = sizeof(ethernet_hdr) + sizeof(arp_hdr);
       Buffer request_buffer(buff_length);    //create buffer for ARP reply
@@ -104,7 +110,7 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
       (*queue_iterator)->nTimesSent = (*queue_iterator)->nTimesSent + 1;
 
       //move on to next pending request
-      ++queue_iterator;
+      queue_iterator++;
     }
   }
 
@@ -119,7 +125,7 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
     }
     //otherwise, continue
     else{
-      ++ae_iterator;
+      ae_iterator++;
     }
   }
 }
