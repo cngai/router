@@ -173,15 +173,13 @@ void SimpleRouter::handleARP(const Buffer& packet, const Interface* iface){
 void SimpleRouter::handleIP(const Buffer& packet, const Interface* iface){
   //get IP packet
   Buffer ip_packet(packet);
-
-  //get IP header
   ip_hdr* ip_header = (ip_hdr*)(ip_packet.data() + sizeof(ethernet_hdr)); //pointer to beginning of IP header
 
   //verify checksum
   uint16_t cs = ip_header->ip_sum;    //get IP packet checksum
   ip_header->ip_sum = 0;
   uint16_t expected_cs = cksum(ip_header, sizeof(ip_hdr));  //expected checksum
-
+  //compare checksums
   if (cs != expected_cs){
     std::cerr << "Invalid packet: checksum does not match expected checksum" << std::endl;
     return; //drop packet
@@ -192,7 +190,6 @@ void SimpleRouter::handleIP(const Buffer& packet, const Interface* iface){
     std::cerr << "Invalid packet: IP packet size smaller than size of ethernet + IP headers" << std::endl;
     return; //drop packet
   }
-
   if (ip_header->ip_len < sizeof(ip_hdr)){
     std::cerr << "Invalid packet: length of IP packet smaller than IP header" << std::endl;
     return; //drop packet
@@ -209,10 +206,8 @@ void SimpleRouter::handleIP(const Buffer& packet, const Interface* iface){
   }
 
   //(2) datagrams to be forwarded
-
   //decrement time to live
   ip_header->ip_ttl = ip_header->ip_ttl - 1;
-
   //make sure time hasn't expired
   if (ip_header->ip_ttl <= 0) {
     std::cerr << "Time to live has run out. Dropping packet." << std::endl;
@@ -224,27 +219,12 @@ void SimpleRouter::handleIP(const Buffer& packet, const Interface* iface){
   ip_header->ip_sum = cksum(ip_header, sizeof(ip_hdr));
 
   //use longest prefix match algorithm to find next-hop IP address in routing table
-  RoutingTableEntry rte = m_routingTable.lookup(ip_header->ip_dst);
+  RoutingTableEntry rte = m_routingTable.lookup(ip_header->ip_dst);  
+  const Interface* ip_if = findIfaceByName(rte.ifName); //find interface of routing table entry
+  std::shared_ptr<ArpEntry> ae = m_arp.lookup(rte.gw); //check if an IP->MAC mapping is in the cache
 
-  //find interface of routing table entry
-  const Interface* ip_if = findIfaceByName(rte.ifName);
-
-  //check if an IP->MAC mapping is in the cache
-  std::shared_ptr<ArpEntry> ae = m_arp.lookup(rte.gw); //change to rte.gw  ip_header->ip_dst
-
-  //if entry found in Arp cache, forward packet to next hop
-  if (ae != nullptr) {
-    //set pointer of ethernet header to beginning of IP packet
-    ethernet_hdr* ip_eth_header = (ethernet_hdr *)ip_packet.data();
-    memcpy(ip_eth_header->ether_shost, ip_if->addr.data(), ETHER_ADDR_LEN); //set source as IP interface address
-    memcpy(ip_eth_header->ether_dhost, ae->mac.data(), ETHER_ADDR_LEN); //set destination to MAC address found in arp entry
-    ip_eth_header->ether_type = htons(ethertype_ip);  //set type to IP packet
-
-    //forward packet to next hop
-    sendPacket(ip_packet, ip_if->name);
-  }
   //if entry not found in Arp cache, router should queue received packet and send ARP request to discover IP->MAC mapping
-  else {
+  if (ae == nullptr) {
     //queue received packet
     std::shared_ptr<ArpRequest> ar = m_arp.queueRequest(ip_header->ip_dst, ip_packet, ip_if->name);
 
@@ -277,6 +257,17 @@ void SimpleRouter::handleIP(const Buffer& packet, const Interface* iface){
 
     //send ARP request back
     sendPacket(request_buffer, ip_if->name);
+  }
+  //if entry found in Arp cache, forward packet to next hop
+  else {
+    //set pointer of ethernet header to beginning of IP packet
+    ethernet_hdr* ip_eth_header = (ethernet_hdr *)ip_packet.data();
+    memcpy(ip_eth_header->ether_shost, ip_if->addr.data(), ETHER_ADDR_LEN); //set source as IP interface address
+    memcpy(ip_eth_header->ether_dhost, ae->mac.data(), ETHER_ADDR_LEN); //set destination to MAC address found in arp entry
+    ip_eth_header->ether_type = htons(ethertype_ip);  //set type to IP packet
+
+    //forward packet to next hop
+    sendPacket(ip_packet, ip_if->name);
   }
 }
 
