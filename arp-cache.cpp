@@ -30,7 +30,7 @@ namespace simple_router {
 void
 ArpCache::periodicCheckArpRequestsAndCacheEntries()
 {
-  //now variable represents current time
+  //get current time to update timeSent variable later
   auto now = steady_clock::now();
 
   //iterate through queued requests
