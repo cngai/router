@@ -26,7 +26,6 @@
 namespace simple_router {
 
 //helper function to sort routing table entries by mask length
-
 bool sortMaskLengths(RoutingTableEntry& rte1, RoutingTableEntry& rte2){
   if (rte1.mask > rte2.mask){
     return true;
@@ -48,11 +47,13 @@ RoutingTable::lookup(uint32_t ip) const
   //forward packet to corresponding next hop
 
   //sort through routing table entries and sort by mask length
-  std::list<RoutingTableEntry> routing_table(m_entries);  //create routing table
-  routing_table.sort(sortMaskLengths);
+  std::list<RoutingTableEntry> sorted_routing_table(m_entries);  //create new routing table for sorting
+
+  //use sortMaskLengths function to sort routing table from longest mask length to shortest
+  sorted_routing_table.sort(sortMaskLengths);
 
   //iterate through routing table
-  for (std::list<RoutingTableEntry>::const_iterator rte_iterator = routing_table.begin(); rte_iterator != routing_table.end(); ++rte_iterator){
+  for (std::list<RoutingTableEntry>::const_iterator rte_iterator = sorted_routing_table.begin(); rte_iterator != sorted_routing_table.end(); rte_iterator++){
     uint32_t rte_dest = rte_iterator->dest;
     uint32_t rte_mask = rte_iterator->mask;
     uint32_t rte_masked_dest = rte_dest & rte_mask;   //mask destination
