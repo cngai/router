@@ -51,8 +51,9 @@ SimpleRouter::handlePacket(const Buffer& packet, const std::string& inIface)
   std::string packet_address = macToString(packet); //get MAC address of packet
   std::string iface_address = macToString(iface->addr); //get address of interface
 
-  std::string broadcast_address_low = "ff:ff:ff:ff:ff:ff";  //broadcast address lowercase
-  std::string broadcast_address_up = "FF:FF:FF:FF:FF:FF";  //broadcast address uppercase
+  //set broadcast addresses
+  std::string broadcast_address_low = "ff:ff:ff:ff:ff:ff";  //lowercase
+  std::string broadcast_address_up = "FF:FF:FF:FF:FF:FF";  //uppercase
 
   //REQ 1 - ignore Ethernet frames other than ARP and IPv4
   uint16_t ether_type;
@@ -73,9 +74,9 @@ SimpleRouter::handlePacket(const Buffer& packet, const std::string& inIface)
 
   //REQ 2 - ignore Ethernet frames not destined to router
   //dest. HW address is neither corresponding MAC address of interface nor broadcast address
-  if ((packet_address != iface_address) && (packet_address != broadcast_address_low) && (packet_address != broadcast_address_up)){
+  if ((packet_address != broadcast_address_low) && (packet_address != broadcast_address_up) && (packet_address != iface_address)){
     std::cerr << "Ethernet frames not destined to router." << std::endl;
-    return;
+    return; //drop packet
   }
 }
 
@@ -83,16 +84,14 @@ SimpleRouter::handlePacket(const Buffer& packet, const std::string& inIface)
 void SimpleRouter::handleARP(const Buffer& packet, const Interface* iface){
   //get ARP header
   arp_hdr* arp_header = (arp_hdr*)(packet.data() + sizeof(ethernet_hdr)); //pointer to beginning of ARP header
-
-  //check to see if ARP request or ARP reply
-  uint16_t arp_operation = ntohs(arp_header->arp_op);
+  uint16_t arp_operation = ntohs(arp_header->arp_op); //check to see if ARP request or ARP reply
 
   //ARP request
   if (arp_operation == arp_op_request){
     std::cerr << "ARP REQUEST" << std::endl;
 
     //make sure ARP target address is same as interface address
-    if (arp_header->arp_tip != iface->ip){
+    if (iface->ip != arp_header->arp_tip){
       std::cerr << "ARP IP address does not match interface IP address." << std::endl;
       return; //drop packet
     }
