@@ -146,7 +146,7 @@ void SimpleRouter::handleARP(const Buffer& packet, const Interface* iface){
     // Iterate through packets, based on loop in arp-cache.cpp
     if (arp_req != nullptr) {
       //iterate through list of pending packets in queue
-      for (std::list<PendingPacket>::const_iterator pp_iterator = arp_req->packets.begin(); pp_iterator != arp_req->packets.end(); ++pp_iterator) {
+      for (std::list<PendingPacket>::const_iterator pp_iterator = arp_req->packets.begin(); pp_iterator != arp_req->packets.end(); pp_iterator++) {
         const uint8_t* arp_buff = pp_iterator->packet.data(); //holds Ethernet frame of pending packet
         ethernet_hdr* e_header = (ethernet_hdr *)arp_buff;  //points to ethernet header of frame
         memcpy(e_header->ether_shost, iface->addr.data(), ETHER_ADDR_LEN); //copy interface address as source address
@@ -202,7 +202,7 @@ void SimpleRouter::handleIP(const Buffer& packet, const Interface* iface){
 
   //(1) datagrams destined to router
   //iterate through all interfaces to see if IP address matches with dest. IP address of IPv4 packet
-  for (std::set<Interface>::const_iterator if_iterator = m_ifaces.begin(); if_iterator != m_ifaces.end(); ++if_iterator) {
+  for (std::set<Interface>::const_iterator if_iterator = m_ifaces.begin(); if_iterator != m_ifaces.end(); if_iterator++) {
     //datagram destined to router
     if (ip_header->ip_dst == if_iterator->ip) {
       std::cerr << "Datagram destined to router. Dropping packet." << std::endl;
