@@ -163,7 +163,6 @@ void SimpleRouter::handleARP(const Buffer& packet, const Interface* iface){
       //entry is on the arp request queue, it is removed from the queue.
       m_arp.removeRequest(arp_req);
     }
-
   }
   else{
     std::cerr << "ARP operation is neither a request nor a reply." << std::endl;

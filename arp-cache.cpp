@@ -30,23 +30,6 @@ namespace simple_router {
 void
 ArpCache::periodicCheckArpRequestsAndCacheEntries()
 {
-  /**
-   * IMPLEMENT THIS METHOD
-   *
-   * This method gets called every second. For each request sent out,
-   * you should keep checking whether to resend a request or remove it.
-   *
-   * Your implementation should follow the following logic
-   *
-   *     for each request in queued requests:
-   *         handleRequest(request)
-   *
-   *     for each cache entry in entries:
-   *         if not entry->isValid
-   *             record entry for removal
-   *     remove all entries marked for removal
-   */
-
   //now variable represents current time
   auto now = steady_clock::now();
 
@@ -55,13 +38,20 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
     //if tried to send arp request 5 or more times, stop re-transmitting, remove pending request,
     //and any packets that are queued for transmission that are associated with the request
     if ((*queue_iterator)->nTimesSent >= MAX_SENT_TIME){
-      //iterate through list of pending packets for specific arp request
-      // for (std::list<PendingPacket>::const_iterator pp_iterator = (*queue_iterator)->packets.begin(); pp_iterator != (*queue_iterator)->packets.end(); ++pp_iterator) {
-      //   ethernet_hdr* pp_e_header = (ethernet_hdr*)(pp_iterator->packet.data()); //set pointer to beginning of packet
-      //   uint8_t host_unreachable = 1;  //not sure what this is for
-      //   const Interface * out_iface = m_router.findIfaceByName(pp_iterator->iface);
-      //   const Interface * in_iface = m_router.findIfaceByMac(Buffer(pp_e_header->ether_dhost, pp_e_header->ether_dhost + ETHER_ADDR_LEN));
-      // } 
+      //iterate through list of pending packets for specific arp request and delete pending packets
+
+      //debugging
+      std::cerr << "DELETING PENDING PACKET LIST OF SIZE: " << (*queue_iterator)->packets.size() << std::endl;
+
+      for (std::list<PendingPacket>::const_iterator pp_iterator = (*queue_iterator)->packets.begin(); pp_iterator != (*queue_iterator)->packets.end();) {
+        // ethernet_hdr* pp_e_header = (ethernet_hdr*)(pp_iterator->packet.data()); //set pointer to beginning of packet
+        // uint8_t host_unreachable = 1;  //not sure what this is for
+        // const Interface * out_iface = m_router.findIfaceByName(pp_iterator->iface);
+        // const Interface * in_iface = m_router.findIfaceByMac(Buffer(pp_e_header->ether_dhost, pp_e_header->ether_dhost + ETHER_ADDR_LEN));
+        pp_iterator = (*queue_iterator)->packets.erase(pp_iterator);
+      } 
+
+      std::cerr << "AFTER PENDING PACKET LIST OF SIZE: " << (*queue_iterator)->packets.size() << std::endl;
 
       //debugging
       std::cerr << "ARP REQUEST SENT 5 TIMES. DELETING REQUEST" << std::endl;
